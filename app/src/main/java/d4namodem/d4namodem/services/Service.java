@@ -2,7 +2,6 @@ package d4namodem.d4namodem.services;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,6 @@ import d4namodem.d4namodem.MainApp;
 import d4namodem.d4namodem.Receiver;
 import d4namodem.d4namodem.ServiceConnection;
 import d4namodem.d4namodem.calc.IobCalc;
-import d4namodem.d4namodem.event.LowSuspendStatus;
 import d4namodem.d4namodem.event.StatusEvent;
 
 public class Service extends android.app.IntentService {
@@ -59,8 +57,7 @@ public class Service extends android.app.IntentService {
             log.debug("onHandleIntent "+msgReceived);
 
 
-            LowSuspendStatus lowSuspendStatus = LowSuspendStatus.getInstance();
-            lowSuspendStatus.dataText = msgReceived;
+
 
             StatusEvent statusEvent = StatusEvent.getInstance();
             DanaConnection danaConnection = getDanaConnection();
@@ -70,50 +67,14 @@ public class Service extends android.app.IntentService {
 
 
 
-            int lowSuspendTempPercent = lowSuspend( LowSuspendStatus.getInstance(),glucoseValue,deltaAvg15min);
-            boolean LowSuspendenabled = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean("LowSuspendEnabled", false);
 
-            int tempPercent = (LowSuspendenabled && lowSuspendTempPercent==0) ? 0 : (int) percent ;
+
 
             if((new Date().getTime() -  statusEvent.timeLastSync.getTime())>60*60_000) {
                 log.debug("Requesting status ...");
 
                 danaConnection.connectIfNotConnected("ServiceBG 1hour");
 
-            }
-
-            if(tempPercent!=100 && tempPercent!=statusEvent.tempBasalRatio) {
-                danaConnection.connectIfNotConnected("ServiceBG setTemp");
-
-
-
-                try {
-                    if(statusEvent.tempBasalRemainMin != 0) {
-                        danaConnection.tempBasalOff();
-                        danaConnection.tempBasal(tempPercent,1);
-                    } else {
-                        danaConnection.tempBasal(tempPercent,1);
-                    }
-
-                    if(statusEvent.tempBasalRatio!=tempPercent) {
-                        log.error("Temp basal set failed");
-                    } else {
-                        log.info("Temp basal set "+statusEvent.tempBasalRatio);
-                    }
-                } catch (Exception e) {
-                    log.error(e.getMessage(),e);
-                }
-            } else if (tempPercent==100 && statusEvent.tempBasalRemainMin != 0
-//                    && statusEvent.tempBasalRatio==0
-                    ) {
-                log.error("Temp basal off ");
-                danaConnection.connectIfNotConnected("ServiceBG");
-                danaConnection.tempBasalOff();
-                if(statusEvent.tempBasalRemainMin != 0) {
-                    log.error("Temp basal off failed");
-                }
-            } else {
-                log.info("No Action: Temp basal as requested: " + tempPercent + " tempBasalRatio:" + statusEvent.tempBasalRatio);
             }
 
 
@@ -144,32 +105,6 @@ public class Service extends android.app.IntentService {
         MainApp.instance().getApplicationContext().sendBroadcast(intent);
     }
 
-    private int lowSuspend(LowSuspendStatus lowSuspendStatus, int glucoseValue, double deltaAvg15min) throws InterruptedException {
-        boolean lowProjected = (glucoseValue + 6.0*deltaAvg15min) <90;
-        boolean nearLowAndDropping = false; //glucoseValue < 130 && deltaAvg15min <= -1.5;
-        boolean low = glucoseValue < 90;
-//            boolean okBg = glucoseValue > 120 ;
-//            boolean rising = avg15min > 90 && deltaAvg30min >1;
-        String rulesText = "n130Dropping: " + nearLowAndDropping + " low: " + low + " lowProjected:"+lowProjected;
-//                + " okBg: " + okBg + " rising:"+rising;
-        lowSuspendStatus.statusText = rulesText;
-        log.debug("onHandleIntent "+rulesText);
-
-
-        int basalPercent;
-
-        if(low || nearLowAndDropping || lowProjected) {
-            basalPercent = 0;
-            log.info("lowSuspend: Temp basal 0% ");
-
-
-        } else {
-            basalPercent = 100;
-            log.info("lowSuspend: No action ");
-        }
-
-        return basalPercent;
-    }
 
 
     private DanaConnection getDanaConnection() throws InterruptedException {
