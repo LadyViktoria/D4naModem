@@ -13,14 +13,14 @@ import java.util.Date;
 
 import d4namodem.d4namodem.DanaConnection;
 import d4namodem.d4namodem.MainApp;
-import d4namodem.d4namodem.ReceiverBG;
+import d4namodem.d4namodem.Receiver;
 import d4namodem.d4namodem.ServiceConnection;
 import d4namodem.d4namodem.calc.IobCalc;
 import d4namodem.d4namodem.event.LowSuspendStatus;
 import d4namodem.d4namodem.event.StatusEvent;
 
-public class ServiceBG extends android.app.IntentService {
-    private static Logger log = LoggerFactory.getLogger(ServiceBG.class);
+public class Service extends android.app.IntentService {
+    private static Logger log = LoggerFactory.getLogger(Service.class);
 
     public static final String ACTION_NEW_DATA = "danaR.action.BG_DATA";
 
@@ -31,8 +31,8 @@ public class ServiceBG extends android.app.IntentService {
 
 //    DetermineBasalAdapterJS determineBasalAdapterJS;
 
-    public ServiceBG() {
-        super("ServiceBG");
+    public Service() {
+        super("Service");
     }
     @Override
     protected void onHandleIntent(Intent intent) {
@@ -121,7 +121,7 @@ public class ServiceBG extends android.app.IntentService {
             log.error(x.getMessage(),x);
 
         } finally {
-            ReceiverBG.completeWakefulIntent(intent);
+            Receiver.completeWakefulIntent(intent);
         }
 
     }
